@@ -11,6 +11,7 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
+    ".expo/react-native-action-sheet/next-node_modules/**/.d.ts",
     ".expo/types/**/*.ts",
     "expo-env.d.ts"
   ]
