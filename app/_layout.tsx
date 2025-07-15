@@ -68,6 +68,7 @@ export default function RootLayout() {
             <Stack.Screen name="auth" options={{ headerShown: false }} />
             <Stack.Screen name="testauth" options={{ headerShown: true }} />
             <Stack.Screen name="+not-found" />
+            <Stack.Screen name="(modals)" options={{ headerShown: false, presentation: 'modal' }} />
           </Stack>
         </AuthGate>
       </TimerProvider>
