@@ -1,8 +1,8 @@
 import { useTimer } from '@/contexts/TimerContext';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function EntryDetail() {
   const { id } = useLocalSearchParams();
@@ -28,7 +28,29 @@ export default function EntryDetail() {
   const timeStr = `${isAM ? '上午' : '下午'}${hour12}点${minutes.toString().padStart(2, '0')}分`;
 
   return (
-    <View style={styles.container}>
+    <>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity
+              onPress={async () => {
+                const url = `https://yourapp.com/record/${id}`;
+                await Share.share({
+                  message: `看看我刚刚又摸鱼赚了钱！详情见：${url}`,
+                  url,
+                  title: '分享我的摸鱼记录',
+                });
+              }}
+              style={{ marginRight: 16 }}
+            >
+              <Ionicons name="share-social-outline" size={24} color="#111" />
+            </TouchableOpacity>
+          ),
+          headerTitle: '',
+          headerTransparent: true,
+        }}
+      />
+      <View style={styles.container}>
         <View style={{ height: 32 }} />
         <View style={styles.row}>
           <View style={styles.emojiBox}><Text style={styles.emoji}>{emoji}</Text></View>
@@ -55,7 +77,8 @@ export default function EntryDetail() {
         }}>
           <Text style={styles.earnBtnText}>再赚一笔</Text>
         </TouchableOpacity>
-    </View>
+      </View>
+    </>
   );
 }
 
