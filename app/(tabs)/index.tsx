@@ -3,7 +3,7 @@ import { auth } from '@/firebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Button, Card, Menu, Modal, Paragraph, Portal, TextInput, Title } from 'react-native-paper';
 
@@ -20,6 +20,56 @@ export default function HomeScreen() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [tempRate, setTempRate] = useState(hourlyRate.toString());
   const [menuVisible, setMenuVisible] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [welcomeMessage, setWelcomeMessage] = useState<string>('');
+
+  // Fun welcoming messages for daily use
+  const welcomingMessages = [
+    "嗨{username}, 今天又是活力满满的一天呢",
+    "欢迎回来{username}, 摸鱼时间到！🐟",
+    "嘿{username}, 准备好赚今天的摸鱼钱了吗？💰",
+    "又见面了{username}, 今天也要开开心心地摸鱼哦～",
+    "嗨{username}, 摸鱼使我快乐，摸鱼使我进步！",
+    "欢迎{username}, 今天也要做最快乐的摸鱼人！",
+    "嗨{username}, 摸鱼一时爽，一直摸鱼一直爽！",
+    "又回来了{username}, 摸鱼是门艺术，你是艺术家！🎨",
+    "欢迎{username}, 今天也要摸出新高度！",
+    "嗨{username}, 摸鱼使我充满活力！⚡",
+    "又见面了{username}, 摸鱼是人生必修课！📚",
+    "欢迎{username}, 今天也要摸鱼摸到爽！",
+    "嗨{username}, 摸鱼使我心情愉悦～",
+    "又回来了{username}, 摸鱼是种生活态度！",
+    "欢迎{username}, 摸鱼使我更有创造力！💡",
+    "嗨{username}, 摸鱼是种享受！",
+    "又见面了{username}, 摸鱼使我更懂得生活！",
+    "欢迎{username}, 摸鱼是种智慧！🧠",
+    "嗨{username}, 摸鱼使我更快乐！",
+    "又回来了{username}, 摸鱼是种艺术！",
+    "欢迎{username}, 摸鱼使我更放松！😌",
+    "嗨{username}, 摸鱼是种享受！",
+    "又见面了{username}, 摸鱼使我更有灵感！✨",
+    "欢迎{username}, 摸鱼是种生活哲学！",
+    "嗨{username}, 摸鱼使我更懂得珍惜时间！⏰",
+    "又回来了{username}, 摸鱼是种生活美学！",
+    "欢迎{username}, 摸鱼使我更懂得平衡！⚖️",
+    "嗨{username}, 摸鱼是种生活智慧！",
+    "又见面了{username}, 摸鱼使我更懂得享受！",
+    "欢迎{username}, 摸鱼是种生活艺术！",
+    "嗨{username}, 摸鱼使我更懂得生活！",
+    "又回来了{username}, 摸鱼是种生活态度！",
+    "欢迎{username}, 摸鱼使我更懂得快乐！😊"
+  ];
+
+  // Get a random welcoming message
+  const getRandomWelcomeMessage = () => {
+    const randomIndex = Math.floor(Math.random() * welcomingMessages.length);
+    return welcomingMessages[randomIndex].replace('{username}', username);
+  };
+
+  // Set welcome message only when component mounts (user re-enters the app)
+  useEffect(() => {
+    setWelcomeMessage(getRandomWelcomeMessage());
+  }, []); // Empty dependency array means this only runs once when component mounts
 
   // Guard: don't render until hourlyRate is available
   if (hourlyRate === undefined) {
@@ -27,8 +77,17 @@ export default function HomeScreen() {
   }
 
   const handlePressActivity = (activityTitle: string) => {
+    // Prevent multiple rapid presses
+    if (isNavigating) return;
+    
+    setIsNavigating(true);
     selectActivity(activityTitle); // This just prepares the timer, doesn't start it
     router.push('/timer');
+    
+    // Reset navigation state after a short delay
+    setTimeout(() => {
+      setIsNavigating(false);
+    }, 1000);
   };
 
   const handleLogout = async () => {
@@ -82,7 +141,7 @@ export default function HomeScreen() {
         </Menu>
       </View>
       <View style={styles.greetingContainer}>
-        <Text style={styles.greetingText}>嗨{username}, 今天又是活力满满的一天呢</Text>
+        <Text style={styles.greetingText}>{welcomeMessage}</Text>
         <View style={styles.earningsContainer}>
           <Text style={styles.earningsLabel}>今日已赚取</Text>
           <Text style={styles.earningsAmount}>{formatMoney(getTotalEarnings())}</Text>
@@ -95,7 +154,12 @@ export default function HomeScreen() {
         </View>
       </View>
       {activities.map((activity) => (
-        <Card key={activity.title} onPress={() => handlePressActivity(activity.title)} style={styles.card}>
+        <Card 
+          key={activity.title} 
+          onPress={() => handlePressActivity(activity.title)} 
+          style={[styles.card, isNavigating && styles.cardDisabled]}
+          disabled={isNavigating}
+        >
           <Card.Content>
             <Title style={styles.cardTitle}>{activity.title}</Title>
             <Paragraph style={styles.cardParagraph}>{activity.description}</Paragraph>
@@ -218,5 +282,8 @@ const styles = StyleSheet.create({
   menuContent: {
     marginTop: 32,
     borderRadius: 8,
+  },
+  cardDisabled: {
+    opacity: 0.7,
   },
 });

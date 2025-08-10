@@ -29,7 +29,7 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
   const [completedSessions, setCompletedSessions] = useState<CompletedSession[]>([]);
   const [currentActivity, setCurrentActivity] = useState<string | null>(null);
   const [hourlyRate, setHourlyRate] = useState<number>(100); // Default hourly rate
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
 
   // Listen for auth state changes to get userId
@@ -62,36 +62,87 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
     fetchData();
   }, [userId]);
 
+  // Optimized timer loop using requestAnimationFrame
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setTimers(prevTimers =>
-        prevTimers.map(timer =>
-          timer.isRunning ? { ...timer, time: timer.time + 1 } : timer
-        )
-      );
-    }, 1000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    let lastUpdate = Date.now();
+    
+    const updateTimer = () => {
+      const now = Date.now();
+      const deltaTime = now - lastUpdate;
+      
+      // Only update if at least 1000ms (1 second) have passed
+      if (deltaTime >= 1000) {
+        setTimers(prevTimers => {
+          let hasChanges = false;
+          const updatedTimers = prevTimers.map(timer => {
+            if (timer.isRunning) {
+              // Increment by 1 second every 1000ms
+              const newTime = timer.time + 1;
+              if (newTime !== timer.time) {
+                hasChanges = true;
+                return { ...timer, time: newTime };
+              }
+            }
+            return timer;
+          });
+          
+          return hasChanges ? updatedTimers : prevTimers;
+        });
+        lastUpdate = now;
+      }
+      
+      animationFrameRef.current = requestAnimationFrame(updateTimer);
+    };
+    
+    animationFrameRef.current = requestAnimationFrame(updateTimer);
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
 
   const selectActivity = (activity: string) => {
+    // Prevent selecting the same activity multiple times rapidly
+    if (currentActivity === activity) {
+      return; // Already selected, do nothing
+    }
+    
     setCurrentActivity(activity);
     // Create a new timer only if one doesn't already exist for this activity
     setTimers(prev => {
-      if (prev.find(t => t.activity === activity)) {
-        return prev;
-      }
-      return [...prev, { activity, time: 0, isRunning: false }];
+      // Clean up any existing timers for this activity first
+      const filtered = prev.filter(t => t.activity !== activity);
+      
+      // Create new timer
+      return [...filtered, { 
+        activity, 
+        time: 0, 
+        isRunning: false // Don't start immediately
+      }];
     });
   };
 
   const resumeTimer = () => {
     if (!currentActivity) return;
-    setTimers(prev => prev.map(t => t.activity === currentActivity ? { ...t, isRunning: true } : t));
+    setTimers(prev => prev.map(t => {
+      if (t.activity === currentActivity) {
+        // Simply resume the timer from where it left off
+        return { ...t, isRunning: true };
+      }
+      return t;
+    }));
   };
 
   const pauseTimer = () => {
     if (!currentActivity) return;
-    setTimers(prev => prev.map(t => t.activity === currentActivity ? { ...t, isRunning: false } : t));
+    setTimers(prev => prev.map(t => {
+      if (t.activity === currentActivity) {
+        return { ...t, isRunning: false };
+      }
+      return t;
+    }));
   };
 
   const calculateEarnings = (duration: number): number => {
