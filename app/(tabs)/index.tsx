@@ -1,16 +1,34 @@
 import { useTimer } from '@/contexts/TimerContext';
 import { auth } from '@/firebaseConfig';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { signOut } from 'firebase/auth';
 import { useEffect, useState } from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button, Card, Menu, Modal, Paragraph, Portal, TextInput, Title } from 'react-native-paper';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Edit3, LogOut, Settings } from 'react-native-feather';
+import { Menu, TextInput } from 'react-native-paper';
 
 const activities = [
-  { title: '摸鱼 🐟', description: '今日宜划水, 宜摸鱼, 宜数钱' },
-  { title: '开会 💻', description: '听不下去了? 数数钱可能会开心点' },
-  { title: '拉屎 💩', description: '听说带薪拉屎是天底下最爽的事情!' },
+  { 
+    title: '摸鱼', 
+    description: '今日宜划水,宜摸鱼,宜数钱',
+    icon: '🐟',
+    backgroundColor: '#B7F0FF',
+    iconBackground: '#2196F3'
+  },
+  { 
+    title: '开会', 
+    description: '听不下去了?数数钱可能会开心点',
+    icon: '💻',
+    backgroundColor: '#FFC7EA',
+    iconBackground: '#9E9E9E'
+  },
+  { 
+    title: '拉屎', 
+    description: '听说带薪拉屎是天底下最爽的事情!',
+    icon: '💩',
+    backgroundColor: '#FFE7A0',
+    iconBackground: '#8D6E63'
+  },
 ];
 
 export default function HomeScreen() {
@@ -118,17 +136,20 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Image
-          source={{ uri: 'https://raw.githubusercontent.com/nanjinli/Zone-Out-Time-Tracker/main/assets/images/avatar.png' }}
-          style={styles.profilePic}
-        />
+      {/* App Header */}
+      <View style={styles.appHeader}>
+        <View style={styles.headerLeft}>
+          <View style={styles.fishIconContainer}>
+            <Text style={styles.fishIcon}>🐟</Text>
+          </View>
+        </View>
+        <Text style={styles.appTitle}>摸鱼时钟</Text>
         <Menu
           visible={menuVisible}
           onDismiss={() => setMenuVisible(false)}
           anchor={
-            <Pressable onPress={() => setMenuVisible(true)} style={styles.menuAnchor}>
-              <Ionicons name="settings-outline" size={24} color="black" />
+            <Pressable onPress={() => setMenuVisible(true)} style={styles.settingsButton}>
+              <Settings width={24} height={24} color="#333" />
             </Pressable>
           }
           contentStyle={styles.menuContent}
@@ -136,152 +157,325 @@ export default function HomeScreen() {
           <Menu.Item 
             onPress={handleLogout} 
             title="退出登录" 
-            leadingIcon="logout"
+            leadingIcon={() => <LogOut width={20} height={20} color="#666" />}
           />
         </Menu>
       </View>
+
+      {/* Greeting Section */}
       <View style={styles.greetingContainer}>
         <Text style={styles.greetingText}>{welcomeMessage}</Text>
-        <View style={styles.earningsContainer}>
-          <Text style={styles.earningsLabel}>今日已赚取</Text>
-          <Text style={styles.earningsAmount}>{formatMoney(getTotalEarnings())}</Text>
-          <View style={styles.rateContainer}>
-            <Text style={styles.hourlyRateText}>时薪: {formatMoney(hourlyRate)}/小时</Text>
-            <Pressable onPress={handleEditRate} style={styles.editButton}>
-              <Ionicons name="pencil" size={16} color="#007AFF" />
-            </Pressable>
-          </View>
+      </View>
+
+      {/* Earnings Display */}
+      <View style={styles.earningsContainer}>
+        <View style={styles.earningsLeft}>
+          <Text style={styles.earningsText}>今日已赚 {formatMoney(getTotalEarnings())}</Text>
+        </View>
+        <View style={styles.earningsRight}>
+          <Text style={styles.hourlyRateText}>时薪 {formatMoney(hourlyRate)}/小时</Text>
+          <Pressable onPress={handleEditRate} style={styles.editIconContainer}>
+            <Edit3 width={16} height={16} color="#666" />
+          </Pressable>
         </View>
       </View>
+
+      {/* Activity Cards */}
       {activities.map((activity) => (
-        <Card 
+        <Pressable 
           key={activity.title} 
           onPress={() => handlePressActivity(activity.title)} 
-          style={[styles.card, isNavigating && styles.cardDisabled]}
+          style={[
+            styles.activityCard, 
+            { backgroundColor: activity.backgroundColor },
+            isNavigating && styles.cardDisabled
+          ]}
           disabled={isNavigating}
         >
-          <Card.Content>
-            <Title style={styles.cardTitle}>{activity.title}</Title>
-            <Paragraph style={styles.cardParagraph}>{activity.description}</Paragraph>
-          </Card.Content>
-        </Card>
+          <View style={[styles.iconContainer, { backgroundColor: 'white' }]}>
+            <Text style={styles.activityIcon}>{activity.icon}</Text>
+          </View>
+          <View style={styles.cardContent}>
+            <Text style={styles.cardTitle}>{activity.title}</Text>
+            <Text style={styles.cardDescription}>{activity.description}</Text>
+          </View>
+        </Pressable>
       ))}
 
-      <Portal>
-        <Modal
-          visible={editModalVisible}
-          onDismiss={() => setEditModalVisible(false)}
-          contentContainerStyle={styles.modalContainer}
-        >
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>更新时薪</Text>
-            <Text style={styles.modalDescription}>
-              设置你的时薪，这样我们就能准确计算你的"摸鱼"收入了 💰
-            </Text>
-            
-            <TextInput
-              value={tempRate}
-              onChangeText={setTempRate}
-              style={styles.modalInput}
-              mode="outlined"
-              keyboardType="numeric"
-              placeholder="例如: 100"
-              label="时薪 (元/小时)"
-            />
-            
-            <View style={styles.modalButtons}>
-              <Button 
-                mode="outlined" 
-                onPress={() => setEditModalVisible(false)} 
-                style={styles.cancelButton}
-              >
-                取消
-              </Button>
-              <Button 
-                mode="contained" 
+      <Modal
+        visible={editModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <View style={styles.modalHeaderSpacer} />
+                <Text style={styles.modalTitle}>更新时薪</Text>
+                <Pressable onPress={() => setEditModalVisible(false)} style={styles.closeButton}>
+                  <Text style={styles.closeButtonText}>✕</Text>
+                </Pressable>
+              </View>
+              
+              <Text style={styles.modalDescription}>
+                设置你的时薪,这样我们就能更准备计算你的摸鱼收入了!
+              </Text>
+              
+              <TextInput
+                value={tempRate}
+                onChangeText={setTempRate}
+                style={styles.modalInput}
+                mode="outlined"
+                keyboardType="numeric"
+                placeholder="¥100/小时"
+                label=""
+                outlineStyle={styles.modalInputOutline}
+              />
+              
+              <Pressable 
                 onPress={handleSaveRate} 
                 style={styles.saveButton}
               >
-                保存
-              </Button>
+                <Text style={styles.saveButtonText}>保存</Text>
+              </Pressable>
             </View>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+      </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 60, backgroundColor: '#FFFFFF' },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  profilePic: { width: 50, height: 50, borderRadius: 25 },
-  greetingContainer: { marginBottom: 30 },
-  greetingText: { fontSize: 24, fontWeight: 'bold', color: '#1C1C1E', marginBottom: 16 },
-  earningsContainer: {
-    backgroundColor: '#F2F2F7',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
+  container: { 
+    flex: 1, 
+    paddingHorizontal: 20, 
+    paddingTop: 60, 
+    backgroundColor: '#FFFFFF' 
   },
-  earningsLabel: { fontSize: 14, color: 'gray', marginBottom: 4 },
-  earningsAmount: { fontSize: 28, fontWeight: 'bold', color: '#34C759', marginBottom: 4 },
-  rateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  appHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 30,
+    paddingHorizontal: 10
   },
-  hourlyRateText: { fontSize: 12, color: 'gray' },
-  editButton: {
-    padding: 4,
+  headerLeft: {
+    width: 40,
+    alignItems: 'center'
   },
-  card: { marginBottom: 15, backgroundColor: '#F2F2F7', borderRadius: 20, elevation: 0 },
-  cardTitle: { fontSize: 22, fontWeight: 'bold' },
-  cardParagraph: { fontSize: 14, color: 'gray', marginTop: 4 },
-  modalContainer: {
-    backgroundColor: 'white',
-    margin: 20,
-    borderRadius: 12,
-    padding: 0,
+  fishIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
-  modalContent: {
-    padding: 24,
+  fishIcon: {
+    fontSize: 20
   },
-  modalTitle: {
+  appTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 8,
+    color: '#333',
+    textAlign: 'center'
+  },
+  settingsButton: {
+    width: 40,
+    alignItems: 'center',
+    padding: 8
+  },
+  greetingContainer: { 
+    marginBottom: 6,
+    alignItems: 'flex-start'
+  },
+  greetingText: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#1C1C1E', 
+    marginBottom: 16,
+    textAlign: 'left'
+  },
+  smileyEmoji: {
+    fontSize: 32
+  },
+  earningsContainer: {
+    backgroundColor: '#F7F2EF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 20,
+    marginBottom: 30,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    height: 52
+  },
+  earningsLeft: {
+    flex: 1
+  },
+  earningsText: { 
+    fontSize: 16, 
+    color: '#333',
+    fontWeight: '500'
+  },
+  earningsRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4
+  },
+  hourlyRateText: { 
+    fontSize: 14, 
+    color: '#666',
+    fontWeight: '500'
+  },
+  editIconContainer: {
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  activityCard: { 
+    marginBottom: 12, 
+    borderRadius: 32, 
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 124
+  },
+  iconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12
+  },
+  activityIcon: {
+    fontSize: 24
+  },
+  cardContent: {
+    flex: 1
+  },
+  cardTitle: { 
+    fontSize: 24, 
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8
+  },
+  cardDescription: { 
+    fontSize: 16, 
+    color: '#666',
+    lineHeight: 22
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 32,
+    padding: 0,
+    width: '75%',
+    maxHeight: '55%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
+  },
+  modalContent: {
+    padding: 20,
+    alignItems: 'center',
+    width: '100%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    width: '100%',
+  },
+  modalHeaderSpacer: {
+    width: 24,
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000',
     textAlign: 'center',
+    flex: 1,
+    marginHorizontal: 10,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+    backgroundColor: '#F0F0F0',
+  },
+  closeButtonText: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
   },
   modalDescription: {
-    fontSize: 14,
-    color: 'gray',
-    marginBottom: 20,
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 24,
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: 22,
+    paddingHorizontal: 16,
+    width: '100%',
   },
   modalInput: {
     marginBottom: 24,
-    backgroundColor: 'white',
+    backgroundColor: '#F7F2EF',
+    width: '100%',
+    height: 50,
+    alignSelf: 'center',
   },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  cancelButton: {
-    flex: 1,
+  modalInputOutline: {
+    borderRadius: 16,
+    borderColor: 'transparent',
   },
   saveButton: {
-    flex: 1,
-    backgroundColor: '#34C759',
+    backgroundColor: '#29251D',
+    borderRadius: 100,
+    height: 54,
+    width: '100%',
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
-  menuAnchor: {
-    padding: 4,
+  saveButtonText: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+    textAlignVertical: 'center',
   },
   menuContent: {
-    marginTop: 32,
-    borderRadius: 8,
+    marginTop: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F2EF',
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 0,
   },
   cardDisabled: {
     opacity: 0.7,
