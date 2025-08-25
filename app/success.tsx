@@ -1,13 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Button } from 'react-native-paper';
-import Animated, { Easing, useAnimatedStyle, useSharedValue, withDelay, withTiming } from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
-const MONEY_EMOJIS = ['💸', '💸', '💸', '💸', '💸'];
 
 export default function SuccessModal() {
   const router = useRouter();
@@ -25,45 +21,35 @@ export default function SuccessModal() {
     opacity: overlayOpacity.value,
   }));
 
-  // Money drop animation
-  const moneyDrops = MONEY_EMOJIS.map((emoji, i) => {
-    const drop = useSharedValue(-100);
-    useEffect(() => {
-      drop.value = withDelay(i * 120, withTiming(SCREEN_HEIGHT * 0.22 + Math.random() * 30, { duration: 700, easing: Easing.out(Easing.cubic) }));
-    }, []);
-    const style = useAnimatedStyle(() => ({
-      position: 'absolute',
-      top: drop.value,
-      left: SCREEN_WIDTH * 0.25 + i * 30 + Math.random() * 20,
-      fontSize: 40 + Math.random() * 10,
-      zIndex: 2,
-    }));
-    return (
-      <Animated.Text key={i} style={style}>{emoji}</Animated.Text>
-    );
-  });
-
   const handleDismiss = () => {
     router.dismiss();
   };
 
   return (
     <Animated.View style={[styles.container, overlayStyle]}>
-      {moneyDrops}
-      <View style={styles.modalContent}>
-        <Pressable style={styles.closeButton} onPress={handleDismiss}>
-            <Ionicons name="close" size={24} color="gray" />
-        </Pressable>
-        <View style={styles.iconContainer}>
-            <Text style={styles.moneyBag}>💰</Text>
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.iconContainer}>
+            <View style={styles.iconBackground}>
+              <Text style={styles.moneyBag}>💰</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.title}>你赚了{earnedAmount.toFixed(2)}元!</Text>
+          <Text style={styles.subtitle}>
+            呦嘿,你刚才摸鱼净赚这么多!
+          </Text>
+          <Text style={styles.subtitle2}>
+            继续加油吧,打工仔!
+          </Text>
+          
+          <Pressable 
+            onPress={handleDismiss} 
+            style={styles.confirmButton}
+          >
+            <Text style={styles.confirmButtonText}>我会再接再厉的!</Text>
+          </Pressable>
         </View>
-        <Text style={styles.title}>你赚了{earnedAmount}元!</Text>
-        <Text style={styles.subtitle}>
-            呦嘿, 你刚才{activityName}净赚了{earnedAmount}元! 继续加油吧, 打工仔!
-        </Text>
-        <Button mode="contained" onPress={handleDismiss} style={styles.confirmButton} labelStyle={styles.confirmButtonText}>
-            好的, 我会再接再厉的!
-        </Button>
       </View>
     </Animated.View>
   );
@@ -72,53 +58,84 @@ export default function SuccessModal() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  modalContainer: {
+    backgroundColor: 'white',
+    borderRadius: 32,
+    padding: 0,
+    width: '75%',
+    maxHeight: '55%',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 10,
   },
   modalContent: {
-    width: '85%',
-    backgroundColor: 'white',
-    borderRadius: 20,
     padding: 20,
     alignItems: 'center',
-    position: 'relative',
-    zIndex: 10,
+    width: '100%',
   },
   iconContainer: {
-    marginTop: -70,
-    marginBottom: 10,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  iconBackground: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#F7F2EF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   moneyBag: {
-    fontSize: 100,
+    fontSize: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 12,
+    color: '#000',
+    marginBottom: 16,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    color: 'gray',
-    marginBottom: 24,
+    color: '#333',
+    marginBottom: 8,
+    lineHeight: 22,
+  },
+  subtitle2: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: 32,
     lineHeight: 22,
   },
   confirmButton: {
+    backgroundColor: '#29251D',
+    borderRadius: 100,
+    height: 54,
     width: '100%',
-    paddingVertical: 8,
-    backgroundColor: 'black',
-    borderRadius: 30,
+    alignSelf: 'center',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   confirmButtonText: {
     fontSize: 16,
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 15,
-    right: 15,
-    zIndex: 20,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textAlign: 'center',
+    flex: 1,
+    textAlignVertical: 'center',
   },
 });

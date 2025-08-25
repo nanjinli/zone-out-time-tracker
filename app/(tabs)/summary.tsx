@@ -166,7 +166,7 @@ export default function SummaryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#F7F2EF',
     paddingTop: 60,
   },
   headerTitle: {
@@ -174,6 +174,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     paddingHorizontal: 20,
     marginBottom: 20,
+    textAlign: 'left',
   },
   filterRow: {
     flexDirection: 'row',
