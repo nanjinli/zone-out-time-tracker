@@ -18,6 +18,7 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       console.log('Firebase auth state changed:', firebaseUser ? 'logged in' : 'logged out');
+      console.log('Firebase user details:', firebaseUser ? { uid: firebaseUser.uid, email: firebaseUser.email } : 'No user');
       setUser(firebaseUser);
       setIsLoading(false);
     });

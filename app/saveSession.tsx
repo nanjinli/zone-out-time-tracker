@@ -1,22 +1,54 @@
 import { useTimer } from '@/contexts/TimerContext';
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     KeyboardAvoidingView,
     Platform,
-    Pressable,
     SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     View
 } from 'react-native';
-import { Button, TextInput } from 'react-native-paper';
+import { Button } from 'react-native-paper';
 
 export default function SaveSessionScreen() {
   const router = useRouter();
   const { currentTimer, saveSession, calculateEarnings } = useTimer();
+
+  // Get activity-specific styling
+  const getActivityStyle = () => {
+    if (!currentTimer) return null;
+    
+    switch (currentTimer.activity) {
+      case '摸鱼':
+        return {
+          gradientColors: ['#D6F6FF', '#FFFFFF'] as const,
+          icon: '🐟',
+          name: '摸鱼'
+        };
+      case '开会':
+        return {
+          gradientColors: ['#FFE0F4', '#FFFFFF'] as const,
+          icon: '💻',
+          name: '开会'
+        };
+      case '拉屎':
+        return {
+          gradientColors: ['#FFF5D6', '#FFFFFF'] as const,
+          icon: '💩',
+          name: '拉屎'
+        };
+      default:
+        return {
+          gradientColors: ['#D6F6FF', '#FFFFFF'] as const,
+          icon: '🐟',
+          name: currentTimer.activity
+        };
+    }
+  };
 
   // Fun mood suggestions for different "zoning out" activities
   const moodSuggestions = {
@@ -156,6 +188,9 @@ export default function SaveSessionScreen() {
     return null; // Render nothing while we safely navigate away.
   }
 
+  const activityStyle = getActivityStyle();
+  if (!activityStyle) return null;
+
   const handleSave = () => {
     if (!currentTimer) return;
 
@@ -173,48 +208,127 @@ export default function SaveSessionScreen() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F2F2F7' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+    <LinearGradient
+      colors={activityStyle.gradientColors}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 0, y: 1 }}
     >
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Pressable onPress={() => router.back()}><Ionicons name="close" size={30} color="black" /></Pressable>
-        </View>
-        <ScrollView contentContainerStyle={styles.content}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        <SafeAreaView style={styles.safeArea}>
+          {/* Header Section - Same as Timer Page */}
+          <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Text style={styles.icon}>{currentTimer.activity.split(' ')[0]}</Text>
+              <Text style={styles.activityIcon}>{activityStyle.icon}</Text>
             </View>
-            <Text style={styles.label}>命名:</Text>
-            <TextInput value={name} onChangeText={setName} style={styles.input} mode="outlined" />
+            <Text style={styles.activityName}>{activityStyle.name}</Text>
+          </View>
+
+          <ScrollView contentContainerStyle={styles.content}>
+            <Text style={styles.label}>这段美好的摸鱼时光叫:</Text>
+            <TextInput 
+              value={name} 
+              onChangeText={setName} 
+              style={styles.input}
+              placeholder="给这段时光起个名字"
+              placeholderTextColor="#999"
+            />
             <Text style={styles.label}>一句话记录心情:</Text>
             <TextInput 
               value={notes} 
               onChangeText={setNotes} 
               style={styles.inputMulti} 
-              mode="outlined" 
               multiline 
+              placeholder="记录一下此刻的心情..."
+              placeholderTextColor="#999"
+              textAlignVertical="top"
             />
             <Button mode="contained" onPress={handleSave} style={styles.saveButton} labelStyle={styles.saveButtonText}>记录</Button>
-        </ScrollView>
-      </SafeAreaView>
-    </KeyboardAvoidingView>
+          </ScrollView>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
+    </LinearGradient>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { padding: 16, alignItems: 'flex-start' },
+  container: {
+    flex: 1,
+  },
+  safeArea: {
+    flex: 1,
+  },
+  header: {
+    paddingTop: 60,
+    paddingBottom: 32,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: 'transparent',
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  activityIcon: {
+    fontSize: 24,
+  },
+  activityName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#000000',
+  },
   content: {
     paddingHorizontal: 24,
     paddingBottom: 40,
   },
-  iconContainer: { alignItems: 'center', marginBottom: 30 },
-  icon: { fontSize: 50 },
-  label: { fontSize: 16, color: 'gray', marginBottom: 8 },
-  input: { marginBottom: 20, backgroundColor: 'white' },
-  inputMulti: { marginBottom: 30, minHeight: 100, backgroundColor: 'white' },
-  saveButton: { paddingVertical: 8, backgroundColor: 'black', borderRadius: 30 },
-  saveButtonText: { fontSize: 18, color: 'white', fontWeight: 'bold' },
+  label: { 
+    fontSize: 16, 
+    color: '#333', 
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  input: { 
+    marginBottom: 20, 
+    backgroundColor: 'white',
+    borderRadius: 16,
+    borderWidth: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  inputMulti: { 
+    marginBottom: 30, 
+    minHeight: 100, 
+    backgroundColor: 'white',
+    borderRadius: 16,
+    borderWidth: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+    textAlignVertical: 'top',
+  },
+  saveButton: { 
+    paddingVertical: 8, 
+    backgroundColor: '#29251D', 
+    borderRadius: 100,
+    height: 54,
+  },
+  saveButtonText: { 
+    fontSize: 18, 
+    color: 'white', 
+    fontWeight: 'bold' 
+  },
 });

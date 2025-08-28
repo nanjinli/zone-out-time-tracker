@@ -1,8 +1,11 @@
 import { CompletedSession, useTimer } from '@/contexts/TimerContext';
+import { auth } from '@/firebaseConfig';
 import { useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import { useState } from 'react';
-import { FlatList, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
-import { Button } from 'react-native-paper';
+import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { LogOut, Settings } from 'react-native-feather';
+import { Button, Menu } from 'react-native-paper';
 
 const formatTime = (seconds: number) => {
   const hours = Math.floor(seconds / 3600);
@@ -13,6 +16,20 @@ const formatTime = (seconds: number) => {
   if (minutes > 0) timeString += `${minutes}m `;
   if (secs > 0 || timeString === '') timeString += `${secs}s`;
   return timeString.trim();
+};
+
+// Map activity name to its corresponding emoji
+const getActivityEmoji = (activity: string): string => {
+  switch (activity) {
+    case '摸鱼':
+      return '🐟';
+    case '开会':
+      return '💻';
+    case '拉屎':
+      return '💩';
+    default:
+      return '🐟';
+  }
 };
 
 function getYear(dateStr: string) {
@@ -27,7 +44,21 @@ export default function SummaryScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedYear, setSelectedYear] = useState<string>('All');
   const [selectedMonth, setSelectedMonth] = useState<string>('All');
+  const [menuVisible, setMenuVisible] = useState(false);
   const router = useRouter();
+  
+  // Debug logging
+  console.log('SummaryScreen: completedSessions length:', completedSessions.length);
+  console.log('SummaryScreen: completedSessions data:', completedSessions);
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setMenuVisible(false);
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
 
   // Get all unique years and months
   const years = Array.from(new Set(completedSessions.map(s => getYear(s.date)))).sort((a, b) => b - a);
@@ -44,23 +75,47 @@ export default function SummaryScreen() {
 
   if (completedSessions.length === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No records yet!</Text>
-        <Text style={styles.emptySubText}>Stop a timer to save your first session.</Text>
+      <View style={styles.container}>
+        {/* App Header - Consistent with other tabs */}
+        <View style={styles.appHeader}>
+          <View style={styles.headerLeft}>
+            <View style={styles.fishIconContainer}>
+              <Text style={styles.fishIcon}>🐟</Text>
+            </View>
+          </View>
+          <Text style={styles.appTitle}>摸鱼时钟</Text>
+          <Menu
+            visible={menuVisible}
+            onDismiss={() => setMenuVisible(false)}
+            anchor={
+              <Pressable onPress={() => setMenuVisible(true)} style={styles.settingsButton}>
+                <Settings width={24} height={24} color="#333" />
+              </Pressable>
+            }
+            contentStyle={styles.menuContent}
+          >
+            <Menu.Item 
+              onPress={handleLogout} 
+              title="退出登录" 
+              leadingIcon={() => <LogOut width={20} height={20} color="#666" />}
+            />
+          </Menu>
+        </View>
+        
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No records yet!</Text>
+          <Text style={styles.emptySubText}>Stop a timer to save your first session.</Text>
+        </View>
       </View>
     );
   }
 
   const renderItem = ({ item }: { item: CompletedSession }) => {
-    // Format earned amount
-    const earned = `+${item.earnings.toFixed(2)} RMB`;
-    // Format time string (e.g. 上午8点50分)
+    // Format time string - use 24-hour format only (e.g. 14:30)
     const dateObj = new Date(item.date);
     const hours = dateObj.getHours();
     const minutes = dateObj.getMinutes();
-    const isAM = hours < 12;
-    const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-    const timeStr = `${isAM ? '上午' : '下午'}${hour12}点${minutes.toString().padStart(2, '0')}分`;
+    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
     // Format duration: show seconds if < 60, else minutes
     let durationStr = '';
     if (item.duration < 60) {
@@ -69,12 +124,19 @@ export default function SummaryScreen() {
       durationStr = `${Math.round(item.duration / 60)}分钟`;
     }
     return (
-      <TouchableOpacity onPress={() => router.push({ pathname: '/(modals)/entryDetail/[id]', params: { id: item.id } })}>
+              <TouchableOpacity onPress={() => router.push({ pathname: '/(modals)/entryDetail/[id]', params: { id: item.id } })}>
         <View style={styles.summaryCard}>
-          <Text style={styles.earnedText}>{earned}</Text>
-          <Text style={styles.sessionInfo}>
-            {timeStr + '的' + item.name} | {durationStr}
-          </Text>
+          <View style={styles.emojiContainer}>
+            <Text style={styles.emoji}>{getActivityEmoji(item.activity)}</Text>
+          </View>
+          <View style={styles.sessionInfo}>
+            <Text style={styles.sessionHeader}>
+              +{item.earnings.toFixed(2)} RMB | {durationStr}
+            </Text>
+            <Text style={styles.sessionTitle}>
+              {item.name}
+            </Text>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -82,13 +144,43 @@ export default function SummaryScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Summary</Text>
+      {/* App Header - Consistent with other tabs */}
+      <View style={styles.appHeader}>
+        <View style={styles.headerLeft}>
+          <View style={styles.fishIconContainer}>
+            <Text style={styles.fishIcon}>🐟</Text>
+          </View>
+        </View>
+        <Text style={styles.appTitle}>摸鱼时钟</Text>
+        <Menu
+          visible={menuVisible}
+          onDismiss={() => setMenuVisible(false)}
+          anchor={
+            <Pressable onPress={() => setMenuVisible(true)} style={styles.settingsButton}>
+              <Settings width={24} height={24} color="#333" />
+            </Pressable>
+          }
+          contentStyle={styles.menuContent}
+        >
+          <Menu.Item 
+            onPress={handleLogout} 
+            title="退出登录" 
+            leadingIcon={() => <LogOut width={20} height={20} color="#666" />}
+          />
+        </Menu>
+      </View>
+
+      {/* Main Title */}
+      <Text style={styles.mainTitle}>这是你的所有摸鱼记录</Text>
+
       <View style={styles.filterRow}>
-        <Button mode="outlined" onPress={() => setModalVisible(true)}>
-          {selectedYear === 'All' && selectedMonth === 'All'
-            ? 'All'
-            : `${selectedYear !== 'All' ? selectedYear : ''}${selectedMonth !== 'All' ? '-' + selectedMonth : ''}`}
-        </Button>
+        <Pressable style={styles.filterButton} onPress={() => setModalVisible(true)}>
+          <Text style={styles.filterButtonText}>
+            {selectedYear === 'All' && selectedMonth === 'All'
+              ? '全部时间'
+              : `${selectedYear !== 'All' ? selectedYear + '年' : ''}${selectedMonth !== 'All' ? selectedMonth + '月' : ''}`}
+          </Text>
+        </Pressable>
       </View>
       <Modal
         visible={modalVisible}
@@ -100,10 +192,10 @@ export default function SummaryScreen() {
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
         <View style={styles.pickerSheet}>
-          <Text style={styles.filterTitle}>Filter by Year & Month</Text>
+          <Text style={styles.filterTitle}>按年月筛选</Text>
           <View style={styles.pickerContainer}>
             <View style={styles.singlePicker}>
-              <Text style={styles.pickerLabel}>Year</Text>
+              <Text style={styles.pickerLabel}>年</Text>
               <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
                 <TouchableOpacity 
                   style={[styles.pickerOption, selectedYear === 'All' && styles.selectedOption]}
@@ -123,7 +215,7 @@ export default function SummaryScreen() {
               </ScrollView>
             </View>
             <View style={styles.singlePicker}>
-              <Text style={styles.pickerLabel}>Month</Text>
+              <Text style={styles.pickerLabel}>月</Text>
               <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
                 <TouchableOpacity 
                   style={[styles.pickerOption, selectedMonth === 'All' && styles.selectedOption]}
@@ -143,14 +235,14 @@ export default function SummaryScreen() {
               </ScrollView>
             </View>
           </View>
-          <Button 
-            mode="contained" 
-            onPress={() => setModalVisible(false)} 
-            style={styles.applyButton}
-            contentStyle={styles.applyButtonContent}
-          >
-            Apply
-          </Button>
+                      <Button 
+              mode="contained" 
+              onPress={() => setModalVisible(false)} 
+              style={styles.applyButton}
+              contentStyle={styles.applyButtonContent}
+            >
+              确定
+            </Button>
         </View>
       </Modal>
       <FlatList
@@ -166,11 +258,54 @@ export default function SummaryScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F2EF',
+    backgroundColor: '#FFFFFF',
     paddingTop: 60,
   },
-  headerTitle: {
-    fontSize: 34,
+  appHeader: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center', 
+    marginBottom: 30,
+    paddingHorizontal: 10
+  },
+  headerLeft: {
+    width: 40,
+    alignItems: 'center'
+  },
+  fishIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fishIcon: {
+    fontSize: 20
+  },
+  appTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center'
+  },
+  settingsButton: {
+    width: 40,
+    alignItems: 'center',
+    padding: 8
+  },
+  menuContent: {
+    marginTop: 40,
+    borderRadius: 20,
+    backgroundColor: '#F7F2EF',
+    elevation: 0,
+    shadowOpacity: 0,
+    shadowColor: 'transparent',
+    shadowOffset: { width: 0, height: 0 },
+    shadowRadius: 0,
+  },
+  mainTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     paddingHorizontal: 20,
     marginBottom: 20,
@@ -180,7 +315,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 24,
+  },
+  filterButton: {
+    backgroundColor: '#F7F2EF',
+    borderRadius: 32,
+    borderWidth: 0,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filterButtonText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
   },
   overlay: {
     position: 'absolute',
@@ -290,20 +439,41 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   summaryCard: {
-    backgroundColor: '#F5F5F5',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: '#222',
+    backgroundColor: '#F7F2EF',
+    borderRadius: 32,
+    borderWidth: 0,
     padding: 24,
-    marginBottom: 18,
+    marginBottom: 12,
+    height: 96,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  earnedText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  emojiContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  emoji: {
+    fontSize: 24,
   },
   sessionInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  sessionHeader: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 6,
+    lineHeight: 24,
+  },
+  sessionTitle: {
     fontSize: 14,
-    fontWeight: '500',
+    color: '#666',
+    lineHeight: 20,
   },
 });

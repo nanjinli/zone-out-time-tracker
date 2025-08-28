@@ -1,8 +1,9 @@
 import { useTimer } from '@/contexts/TimerContext';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React from 'react';
-import { Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Share, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function EntryDetail() {
   const { id } = useLocalSearchParams();
@@ -14,18 +15,39 @@ export default function EntryDetail() {
     return <View style={styles.container}><Text>记录未找到</Text></View>;
   }
 
-  // Emoji: use category mapping
-  let emoji = '🐟';
-  if (entry.activity.includes('摸鱼')) emoji = '🐟';
-  else if (entry.activity.includes('开会')) emoji = '💻';
-  else if (entry.activity.includes('拉屎')) emoji = '💩';
-  // Time string
+  // Get activity style with gradient colors and emoji
+  const getActivityStyle = (activity: string) => {
+    switch (activity) {
+      case '摸鱼':
+        return {
+          gradientColors: ['#D6F6FF', '#FFFFFF'] as const,
+          icon: '🐟',
+        };
+      case '开会':
+        return {
+          gradientColors: ['#FFE0F4', '#FFFFFF'] as const,
+          icon: '💻',
+        };
+      case '拉屎':
+        return {
+          gradientColors: ['#FFF5D6', '#FFFFFF'] as const,
+          icon: '💩',
+        };
+      default:
+        return {
+          gradientColors: ['#D6F6FF', '#FFFFFF'] as const,
+          icon: '🐟',
+        };
+    }
+  };
+
+  const activityStyle = getActivityStyle(entry.activity);
+  const emoji = activityStyle.icon;
+  // Time string - use 24-hour format only
   const dateObj = new Date(entry.date);
   const hours = dateObj.getHours();
   const minutes = dateObj.getMinutes();
-  const isAM = hours < 12;
-  const hour12 = hours % 12 === 0 ? 12 : hours % 12;
-  const timeStr = `${isAM ? '上午' : '下午'}${hour12}点${minutes.toString().padStart(2, '0')}分`;
+  const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 
   return (
     <>
@@ -50,26 +72,29 @@ export default function EntryDetail() {
           headerTransparent: true,
         }}
       />
-      <View style={styles.container}>
+      <LinearGradient
+        colors={activityStyle.gradientColors}
+        style={styles.container}
+      >
         <View style={{ height: 32 }} />
-        <View style={styles.row}>
-          <View style={styles.emojiBox}><Text style={styles.emoji}>{emoji}</Text></View>
-          <View style={{ marginLeft: 16 }}>
-            <Text style={styles.timeText}>{`${timeStr}的${entry.name}`}</Text>
-            <View style={styles.activityTag}><Text style={styles.activityText}>{entry.name}</Text></View>
+        {/* Header with emoji and title */}
+        <View style={styles.header}>
+          <View style={styles.emojiContainer}>
+            <Text style={styles.emoji}>{emoji}</Text>
           </View>
+          <Text style={styles.headerTitle}>{entry.name}</Text>
         </View>
-        <Text style={styles.label}>我赚了</Text>
-        <Text style={styles.earned}>{entry.earnings.toFixed(2)}人民币</Text>
-        <Text style={styles.label}>我的心情</Text>
-        <View style={styles.moodBox}>
-          <TextInput
-            style={styles.moodInput}
-            value={entry.notes || '摸鱼还能不高兴么？又赚到了！'}
-            editable={false}
-            multiline
-          />
-          <Ionicons name="pencil-outline" size={20} color="#bbb" style={styles.editIcon} />
+        
+        {/* Content without grey box - left aligned */}
+        <View style={styles.content}>
+          <Text style={styles.congratsText}>恭喜你赚了</Text>
+          <Text style={styles.earnedAmount}>{entry.earnings.toFixed(2)} RMB</Text>
+          <Text style={styles.durationLabel}>你的摸鱼时长为</Text>
+          <Text style={styles.durationText}>{entry.duration < 60 ? `${entry.duration}秒` : `${Math.round(entry.duration / 60)}分钟`}</Text>
+          <Text style={styles.moodLabel}>你的心情是</Text>
+          <View style={styles.moodBox}>
+            <Text style={styles.moodText}>{entry.notes || '摸鱼还能不高兴么？又赚到了！'}</Text>
+          </View>
         </View>
         <TouchableOpacity style={styles.earnBtn} onPress={() => {
           selectActivity(entry.activity);
@@ -77,26 +102,97 @@ export default function EntryDetail() {
         }}>
           <Text style={styles.earnBtnText}>再赚一笔</Text>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
     </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#e5ecef', padding: 24 },
-  backBtn: { marginBottom: 16 },
-  backText: { fontSize: 18, color: '#222' },
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 32 },
-  emojiBox: { width: 72, height: 72, borderRadius: 24, backgroundColor: '#dde6ea', alignItems: 'center', justifyContent: 'center' },
-  emoji: { fontSize: 40 },
-  timeText: { fontSize: 18, fontWeight: '500', marginBottom: 8 },
-  activityTag: { backgroundColor: '#dde6ea', borderRadius: 16, paddingHorizontal: 16, paddingVertical: 4, alignSelf: 'flex-start' },
-  activityText: { fontSize: 16, color: '#222' },
-  label: { fontSize: 18, color: '#222', marginTop: 16, marginBottom: 4 },
-  earned: { fontSize: 36, fontWeight: 'bold', color: '#111', marginBottom: 16 },
-  moodBox: { backgroundColor: '#fff', borderRadius: 16, padding: 16, marginTop: 8, marginBottom: 32, flexDirection: 'row', alignItems: 'center' },
-  moodInput: { flex: 1, fontSize: 16, color: '#bbb' },
-  editIcon: { marginLeft: 8 },
-  earnBtn: { backgroundColor: '#111', borderRadius: 32, paddingVertical: 16, alignItems: 'center', marginTop: 32 },
-  earnBtnText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
+  container: { flex: 1, padding: 24 },
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    marginBottom: 32,
+    paddingHorizontal: 8,
+  },
+  emojiContainer: { 
+    width: 48, 
+    height: 48, 
+    borderRadius: 24, 
+    backgroundColor: '#FFFFFF', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  emoji: { fontSize: 24 },
+  headerTitle: { 
+    fontSize: 18, 
+    fontWeight: '500', 
+    color: '#333',
+    flex: 1,
+  },
+  content: { 
+    paddingHorizontal: 8,
+  },
+  congratsText: { 
+    fontSize: 16, 
+    color: '#000000', 
+    marginBottom: 8,
+    textAlign: 'left',
+  },
+  earnedAmount: { 
+    fontSize: 24, 
+    fontWeight: 'bold', 
+    color: '#333', 
+    marginBottom: 20,
+    textAlign: 'left',
+  },
+  durationLabel: { 
+    fontSize: 16, 
+    color: '#000000', 
+    marginBottom: 8,
+    textAlign: 'left',
+  },
+  durationText: { 
+    fontSize: 24, 
+    fontWeight: '600', 
+    color: '#333', 
+    marginBottom: 20,
+    textAlign: 'left',
+  },
+  moodLabel: { 
+    fontSize: 16, 
+    color: '#000000', 
+    marginBottom: 8,
+    textAlign: 'left',
+  },
+  moodBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    height: 52,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    alignItems: 'flex-start',
+    justifyContent: 'center',
+    alignSelf: 'stretch',
+  },
+  moodText: { 
+    fontSize: 16, 
+    color: '#333', 
+    textAlign: 'left',
+    lineHeight: 22,
+  },
+  earnBtn: { 
+    backgroundColor: '#333', 
+    borderRadius: 32, 
+    paddingVertical: 16, 
+    alignItems: 'center', 
+    marginTop: 44,
+    alignSelf: 'stretch',
+  },
+  earnBtnText: { 
+    color: '#fff', 
+    fontSize: 20, 
+    fontWeight: 'bold' 
+  },
 }); 

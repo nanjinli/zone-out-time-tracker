@@ -42,22 +42,36 @@ export const TimerProvider = ({ children }: { children: ReactNode }) => {
 
   // Load sessions and hourlyRate from Firestore on login
   useEffect(() => {
-    if (!userId) return;
+    console.log('TimerContext: userId changed to:', userId);
+    if (!userId) {
+      console.log('TimerContext: No userId, skipping data fetch');
+      return;
+    }
     const fetchData = async () => {
-      // Load hourlyRate
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        if (data.hourlyRate) setHourlyRate(data.hourlyRate);
+      try {
+        console.log('TimerContext: Fetching data for userId:', userId);
+        // Load hourlyRate
+        const userDoc = await getDoc(doc(db, 'users', userId));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          console.log('TimerContext: User doc data:', data);
+          if (data.hourlyRate) setHourlyRate(data.hourlyRate);
+        } else {
+          console.log('TimerContext: User doc does not exist');
+        }
+        // Load completedSessions
+        const q = query(collection(db, 'users', userId, 'sessions'));
+        const querySnapshot = await getDocs(q);
+        const sessions: CompletedSession[] = [];
+        querySnapshot.forEach((docSnap) => {
+          sessions.push(docSnap.data() as CompletedSession);
+        });
+        console.log('TimerContext: Loaded sessions count:', sessions.length);
+        console.log('TimerContext: Sessions data:', sessions);
+        setCompletedSessions(sessions);
+      } catch (error) {
+        console.error('TimerContext: Error fetching data:', error);
       }
-      // Load completedSessions
-      const q = query(collection(db, 'users', userId, 'sessions'));
-      const querySnapshot = await getDocs(q);
-      const sessions: CompletedSession[] = [];
-      querySnapshot.forEach((docSnap) => {
-        sessions.push(docSnap.data() as CompletedSession);
-      });
-      setCompletedSessions(sessions);
     };
     fetchData();
   }, [userId]);
