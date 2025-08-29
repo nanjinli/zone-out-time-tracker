@@ -192,16 +192,21 @@ export default function SummaryScreen() {
           <View style={styles.overlay} />
         </TouchableWithoutFeedback>
         <View style={styles.pickerSheet}>
-          <Text style={styles.filterTitle}>按年月筛选</Text>
+          <View style={styles.modalHeader}>
+            <Text style={styles.filterTitle}>选择时间</Text>
+            <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeButton}>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
           <View style={styles.pickerContainer}>
             <View style={styles.singlePicker}>
-              <Text style={styles.pickerLabel}>年</Text>
+              <Text style={styles.pickerLabel}>年份</Text>
               <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
                 <TouchableOpacity 
                   style={[styles.pickerOption, selectedYear === 'All' && styles.selectedOption]}
                   onPress={() => setSelectedYear('All')}
                 >
-                  <Text style={[styles.pickerOptionText, selectedYear === 'All' && styles.selectedOptionText]}>All</Text>
+                  <Text style={[styles.pickerOptionText, selectedYear === 'All' && styles.selectedOptionText]}>全部</Text>
                 </TouchableOpacity>
                 {years.map(year => (
                   <TouchableOpacity 
@@ -215,13 +220,13 @@ export default function SummaryScreen() {
               </ScrollView>
             </View>
             <View style={styles.singlePicker}>
-              <Text style={styles.pickerLabel}>月</Text>
+              <Text style={styles.pickerLabel}>月份</Text>
               <ScrollView style={styles.pickerScroll} showsVerticalScrollIndicator={false}>
                 <TouchableOpacity 
                   style={[styles.pickerOption, selectedMonth === 'All' && styles.selectedOption]}
                   onPress={() => setSelectedMonth('All')}
                 >
-                  <Text style={[styles.pickerOptionText, selectedMonth === 'All' && styles.selectedOptionText]}>All</Text>
+                  <Text style={[styles.pickerOptionText, selectedMonth === 'All' && styles.selectedOptionText]}>全部</Text>
                 </TouchableOpacity>
                 {months.map(month => (
                   <TouchableOpacity 
@@ -235,14 +240,14 @@ export default function SummaryScreen() {
               </ScrollView>
             </View>
           </View>
-                      <Button 
-              mode="contained" 
-              onPress={() => setModalVisible(false)} 
-              style={styles.applyButton}
-              contentStyle={styles.applyButtonContent}
-            >
-              确定
-            </Button>
+          <Button 
+            mode="contained" 
+            onPress={() => setModalVisible(false)} 
+            style={styles.applyButton}
+            contentStyle={styles.applyButtonContent}
+          >
+            保存
+          </Button>
         </View>
       </Modal>
       <FlatList
@@ -352,11 +357,28 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
     zIndex: 2,
   },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
   filterTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 16,
     textAlign: 'center',
+    flex: 1,
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: '#666',
+    fontWeight: '500',
   },
   pickerContainer: {
     flexDirection: 'row',
@@ -391,11 +413,13 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   selectedOptionText: {
-    color: '#007AFF',
+    color: '#FF6B35',
     fontWeight: '600',
   },
   applyButton: {
     marginTop: 16,
+    backgroundColor: '#8B4513',
+    borderRadius: 24,
   },
   applyButtonContent: {
     height: 48,
